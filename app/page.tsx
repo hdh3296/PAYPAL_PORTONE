@@ -1,101 +1,87 @@
+'use client'
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import * as PortOne from "@portone/browser-sdk/v2";
+
+const PRODUCT = {
+  name: "프리미엄 멤버십",
+  price: 10,  // USD로 가격 변경 (약 10달러)
+  description: "월간 프리미엄 멤버십 서비스입니다.",
+  image: "/next.svg"    
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [paymentId, setPaymentId] = useState<string>("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+  useEffect(() => {
+    // 컴포넌트가 마운트된 후에 paymentId 생성
+    setPaymentId(`payment-${crypto.randomUUID()}`);
+  }, []);
+
+  useEffect(() => {
+    // paymentId가 생성된 후에만 결제 UI 로드
+    if (!paymentId) return;
+
+    const loadPaymentUI = async () => {
+      // 결제 요청 데이터 준비
+      const requestData = {
+        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID!,
+        channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY!,
+        paymentId: paymentId,
+        orderName: PRODUCT.name,
+        totalAmount: PRODUCT.price,
+        currency: "CURRENCY_USD",  // "USD"에서 "CURRENCY_USD"로 변경
+        uiType: "PAYPAL_SPB" as const,
+      } as const;
+
+      try {
+        // 페이팔 결제 버튼 렌더링
+        await PortOne.loadPaymentUI(requestData, {
+          onPaymentSuccess: (response) => {
+            console.log("결제 성공:", response);
+            // 결제 성공 시 처리
+            alert('결제가 완료되었습니다!');
+          },
+          onPaymentFail: (error) => {
+            console.error("결제 실패:", error);
+            alert(`결제에 실패했습니다: ${error.message}`);
+          },
+        });
+      } catch (error) {
+        console.error("결제 UI 로드 실패:", error);
+        alert('결제 시스템을 불러오는데 실패했습니다.');
+      }
+    };
+
+    loadPaymentUI();
+  }, [paymentId]);
+
+  return (
+    <div className="min-h-screen p-8 flex flex-col items-center justify-center bg-gray-50">
+      <main className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+        {/* 상품 정보 */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-4">{PRODUCT.name}</h1>
+          <div className="aspect-video relative mb-4 rounded-lg overflow-hidden bg-gray-100">
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src={PRODUCT.image}
+              alt={PRODUCT.name}
+              fill
+              className="object-contain p-4"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+          <p className="text-gray-600 mb-4">{PRODUCT.description}</p>
+          <p className="text-xl font-bold text-blue-600">
+            {PRODUCT.price.toLocaleString()}원
+          </p>
+        </div>
+
+        {/* 페이팔 결제 버튼이 렌더링될 컨테이너 */}
+        <div className="portone-ui-container">
+          {/* 여기에 페이팔 버튼이 자동으로 렌더링됩니다 */}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
